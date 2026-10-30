@@ -1,38 +1,63 @@
-# Análise de algoritmos de ordenação em Java
+# Comparação de algoritmos de ordenação em Java
 
-Projeto acadêmico de Computação Paralela e Concorrente — Ciência da Computação, UNIFOR.
+Trabalho de Computação Paralela e Concorrente da UNIFOR.
 
-## Abrir no IntelliJ
-1. Selecione **Open** e escolha esta pasta (ou `pom.xml`).
-2. Selecione um JDK 21 ou superior em **File > Project Structure > Project SDK**. A linguagem alvo é Java 21; este projeto foi validado com JDK 24.
-3. Aguarde a importação Maven. O IntelliJ pode usar seu Maven integrado.
-4. Abra `src/main/java/br/edu/unifor/cpc/Main.java` e execute `main`.
-5. Em **Run > Edit Configurations**, use `--test` para validar ou `--full` para o experimento completo. Configure o diretório de trabalho como a raiz deste projeto.
+**Aluno:** Vitor Vargas Cardoso  
+**Professor:** Izequiel  
+**Turma:** T296-26
 
-## Executar pelo terminal (sem instalar Maven)
+O projeto compara Quick Sort, Merge Sort, Insertion Sort e Selection Sort em execução sequencial e paralela. Os tempos são registrados em CSV para análise e geração dos gráficos apresentados no artigo.
+
+## Como executar
+
+É necessário ter JDK 21 ou superior. Os experimentos incluídos no repositório foram executados com JDK 24.
+
+Na pasta do projeto:
+
 ```sh
+# Verificar as implementações (800 casos)
 sh run.sh --test
-sh run.sh
+
+# Executar o benchmark completo (720 medições)
 sh run.sh --full
+
+# Executar somente o cenário de 1.000 elementos (240 medições)
+sh run.sh
 ```
-Sem argumentos, executa uma amostra rápida de 240 medições, com tamanho 1.000. `--full` gera 720 medições em `results/completo.csv`: quatro algoritmos × três tamanhos (1.000, 5.000, 10.000) × três entradas × quatro configurações × cinco amostras. Uma nova execução substitui o CSV do mesmo perfil; preserve os resultados anteriores antes de repetir.
 
-## Algoritmos e paralelismo
-- Quick Sort: partição em três vias e tarefas sobre subvetores disjuntos.
-- Merge Sort: ordenação de metades em paralelo e fusão sequencial.
-- Insertion Sort e Selection Sort: versões sequenciais tradicionais; versões paralelas híbridas com ordenação de blocos pelo algoritmo correspondente e fusão. Não são versões puras dos algoritmos e a divisão também reduz o trabalho quadrático; o speedup precisa ser interpretado com essa ressalva.
+No IntelliJ, abra o `pom.xml` como projeto Maven e execute a classe `Main`. Informe `--test` ou `--full` em **Program arguments**, mantendo a pasta do projeto como diretório de trabalho.
 
-Usamos ForkJoinPool dedicado com paralelismo 2, 4 e 8; o caso sequencial usa uma única thread chamadora. Há limite de subdivisão por orçamento de tarefas e limiar de 256 elementos. O paralelismo configurado não garante uso simultâneo de todas as threads e não fixa afinidade nem altera o número de núcleos físicos.
+## Experimento
 
-## Metodologia dos dados
-Cada amostra usa seed reproduzível e os mesmos dados para todas as configurações; entradas crescente e decrescente derivam da mesma distribuição uniforme de inteiros em [0, 10n). Há três aquecimentos por configuração; a ordem das configurações é embaralhada a cada amostra. Clonagem, geração, validação e escrita do CSV ficam fora do tempo. O tempo inclui despacho de tarefas, alocações internas e fusões. Pools são reutilizados, com criação e encerramento fora da medição. Cada saída é comparada integralmente com `Arrays.sort` aplicado a uma cópia, fora da medição.
+| Parâmetro | Configurações |
+|---|---|
+| Algoritmos | Quick, Merge, Insertion e Selection |
+| Tamanhos | 1.000, 5.000 e 10.000 elementos |
+| Entradas | Aleatória, crescente e decrescente |
+| Execução | Sequencial e paralela com 2, 4 e 8 threads |
+| Amostras | 5 por configuração, após 3 aquecimentos |
 
-Resultados representam esta máquina e JVM; tamanhos pequenos são sensíveis ao agendamento, JIT e coleta de lixo. Não é um estudo com JMH ou múltiplos processos JVM. Registre hardware e carga do sistema antes de usar os dados no artigo. O arquivo de ambiente registra Java, SO, arquitetura e processadores lógicos visíveis.
+As configurações recebem cópias dos mesmos dados em cada amostra. O tempo é medido com `System.nanoTime()`, incluindo a ordenação, o despacho de tarefas e as fusões. Geração dos dados, clonagem, validação e escrita do CSV ficam fora da medição. As saídas são comparadas com `Arrays.sort`.
 
-O CSV usa ponto decimal e vírgula como separador; ao importar no Excel/Sheets, selecione esses formatos. `resumo.csv` resume a execução inicial completa com média, mediana, desvio padrão amostral, speedup (média sequencial / média da configuração) e eficiência (speedup / threads). Ele não é recalculado automaticamente pelo Java se repetir o benchmark.
+Quick e Merge dividem o trabalho em tarefas recursivas com `ForkJoinPool`. Insertion e Selection usam uma adaptação híbrida: ordenam blocos com o algoritmo correspondente e depois fazem a fusão. Nesse caso, a divisão também reduz o trabalho quadrático; o ganho medido não vem apenas das threads. O número de threads configura o paralelismo do pool, sem controlar a afinidade aos núcleos físicos.
 
-## Git e GitHub
-O repositório local já foi inicializado. Para publicar pelo IntelliJ, use **Git > GitHub > Share Project on GitHub**, autentique sua conta e escolha a visibilidade. Confirme a URL criada antes de colocá-la no relatório. Nenhum remoto foi criado nesta sessão.
+## Arquivos
 
-## Documentação
-`docs/Modelo-Artigo.docx` é uma cópia do modelo fornecido. `docs/roteiro-relatorio.md` organiza o trabalho restante; o artigo final e os gráficos ainda precisam ser produzidos.
+- `src/main/java/br/edu/unifor/cpc/`: implementações, benchmark e testes.
+- `results/completo.csv`: medições do experimento completo.
+- `results/completo-ambiente.txt`: ambiente da execução.
+- `results/resumo.csv`: estatísticas da execução original.
+- `docs/graficos/`: gráficos em PNG e SVG.
+- `docs/analise-resultados.md`: análise dos resultados.
+- `docs/Artigo-Computacao-Paralela.docx`: artigo editável.
+- [Artigo em PDF](output/pdf/Artigo-Computacao-Paralela.pdf).
+
+Para gerar novamente a análise e os gráficos, instale `matplotlib` em um ambiente Python e execute:
+
+```sh
+python scripts/analisar.py
+```
+
+Uma nova execução do benchmark substitui o CSV do mesmo perfil. O Java não atualiza `resumo.csv` automaticamente; esse arquivo corresponde às medições originais. O script de análise lê `completo.csv` e atualiza o texto da análise e as figuras.
+
+Os resultados descrevem uma execução em uma única JVM, com cinco amostras por configuração. A dispersão e as limitações da comparação são discutidas no artigo.
